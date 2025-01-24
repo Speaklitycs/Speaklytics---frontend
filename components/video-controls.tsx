@@ -6,11 +6,18 @@ import { faPlay, faPause } from "@fortawesome/free-solid-svg-icons";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
+type Gaps = {
+  color: string;
+  start: number;
+  end: number;
+};
+
 interface VideoControlsProps {
   onPlayPause: () => void;
   onGoto: (time: number) => void;
   progress: number;
   isPlaying: boolean;
+  gaps: Gaps[];
 }
 
 const VideoControls: React.FC<VideoControlsProps> = ({
@@ -18,6 +25,7 @@ const VideoControls: React.FC<VideoControlsProps> = ({
   onGoto,
   progress,
   isPlaying,
+  gaps,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -80,7 +88,40 @@ const VideoControls: React.FC<VideoControlsProps> = ({
             }
           }}
           className={cn("cursor-pointer", styles["progress"])}
+          id="progress-bar-id"
         />
+        <div>
+          {/* <div className="absolute w-2 h-2 bg-red-400 top-6 left-10 rounded translate-x-[1450px]"></div> */}
+          {gaps
+            .map((gap, i) => {
+              const barWidthPx =
+                document.getElementById("progress-bar-id")?.offsetWidth || 0;
+              const classes = `pointer-events-none absolute w-2 h-2 top-6 left-10 rounded border border-light-gray`;
+
+              const startTranslationPx = (gap.start / 100) * barWidthPx;
+              const endTranslationPx = (gap.end / 100) * barWidthPx;
+
+              return [
+                <div
+                  key={`start-${i}`}
+                  className={cn(classes)}
+                  style={{
+                    transform: `translateX(${startTranslationPx}px)`,
+                    backgroundColor: gap.color,
+                  }}
+                />,
+                // <div
+                //   key={`end-${i}`}
+                //   className={cn(classes)}
+                //   style={{
+                //     transform: `translateX(${endTranslationPx}px)`,
+                //     backgroundColor: gap.color,
+                //   }}
+                // />,
+              ];
+            })
+            .flat()}
+        </div>
       </div>
     </div>
   );

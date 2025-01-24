@@ -1,22 +1,23 @@
 const express = require("express");
-const app = express();
-const port = 8080;
 const { exec } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 const { createProxyMiddleware } = require("http-proxy-middleware");
 
 const SEGMENT_LENGTH = 3; // Segment length in seconds
 
 const AVAILABLE_ANALYSES = {
   transcription: [],
-  "language-complexity": ["transcription"],
-  "background-actors": [],
-  "emotional-analysis": ["transcription"],
-  "language-errors": ["transcription"],
-  "target-group": ["transcription"],
-  "quality-summary": ["transcription", "audio-gaps", "noise-detection"],
-  audio: [],
-  metrics: ["transcription"],
+  background_people: [],
+  topic_change: ["transcription"],
+  excessive_gestures: [],
+  jargon: ["transcription"],
+  numbers: ["transcription"],
+  difficult_words: ["transcription"],
+  long_sentences: ["transcription"],
+  silence: [],
+  repetition: ["transcription"],
+  volume: [],
 };
 
 function makeFakeTranscriptionWords() {
@@ -44,40 +45,71 @@ const ANALYSES_OUTPUT = {
       .map((w) => w.word)
       .join(" "),
   },
-  "language-complexity": {
-    tier: "B2",
-  },
-  "background-actors": {
-    "found-any": true,
-    "time-ranges": [
-      { start: 0.0, end: 1.0 },
-      { start: 2.0, end: 3.0 },
+  background_people: {
+    gaps: [
+      { start: 1.2, end: 1.4 },
+      { start: 10.8, end: 11.1 },
     ],
   },
-  "emotional-analysis": {
-    emotions: {
-      anger: 0.1,
-      happiness: 0.9,
-    },
-  },
-  "language-errors": {
-    errors: [
-      "Word 'are' should be replaced with 'is' in the sentence 'There are not many of them'.",
-      "Word 'important' can be replaced with 'crucial' in the sentence 'They are very important' to better convey the message.",
+  topic_change: {
+    gaps: [
+      { start: 3.3, end: 3.6 },
+      { start: 15.7, end: 16.1 },
     ],
   },
-  "target-group": {
-    "age-range": [18, 35],
+  excessive_gestures: {
+    gaps: [
+      { start: 0.8, end: 1.1 },
+      { start: 12.5, end: 12.9 },
+    ],
   },
-  "quality-summary": {
-    transcription: 0.9,
-    "audio-gaps": 0.5,
-    "noise-detection": 0.8,
+  jargon: {
+    gaps: [
+      { start: 2.7, end: 3.0 },
+      { start: 13.4, end: 13.8 },
+    ],
+  },
+  numbers: {
+    gaps: [
+      { start: 5.1, end: 5.4 },
+      { start: 17.9, end: 18.3 },
+    ],
+  },
+  difficult_words: {
+    gaps: [
+      { start: 6.3, end: 6.7 },
+      { start: 14.5, end: 14.9 },
+    ],
+  },
+  long_sentences: {
+    gaps: [
+      { start: 7.8, end: 8.2 },
+      { start: 19.1, end: 19.5 },
+    ],
+  },
+  silence: {
+    gaps: [
+      { start: 4.6, end: 5.0 },
+      { start: 16.2, end: 16.6 },
+    ],
+  },
+  repetition: {
+    gaps: [
+      { start: 0.4, end: 0.7 },
+      { start: 11.3, end: 11.6 },
+    ],
+  },
+  volume: {
+    gaps: [
+      { start: 8.5, end: 8.9 },
+      { start: 18.0, end: 18.4 },
+    ],
   },
 };
 
 const tickets = {};
 
+const app = express();
 app.use(express.json());
 
 app.post("/api/ticket/new", (req, res) => {
@@ -137,9 +169,17 @@ app.get("/api/ticket/video", (req, res) => {
 
   if (!tickets[ticketId].hasVideo) {
     res.status(404).json({ status: "not-uploaded" });
+    return;
   }
 
-  res.sendFile(path.join(__dirname, "api-mockup-video.mp4"));
+  const videoPath = path.join(__dirname, "api-mockup-video.mp4");
+  const stream = fs.createReadStream(videoPath);
+
+  stream.on("error", (error) => {
+    console.error("Error reading file:", error);
+    res.status(500).json({ status: "server-error" });
+  });
+  stream.pipe(res);
 });
 
 app.get("/api/ticket/stream", (req, res) => {
@@ -180,33 +220,10 @@ app.get("/api/ticket/stream", (req, res) => {
   );
 });
 
-app.post("/api/ticket/analyze", (req, res) => {
-  const ticketId = req.query["ticket-id"];
-
-  if (!tickets[ticketId]) {
-    res.status(400).json({ status: "bad-ticket" });
-    return;
-  }
-
-  const type = req.query["type"];
-
-  if (!type) {
-    res.status(400).json({ status: "bad-type" });
-    return;
-  }
-
-  if (tickets[ticketId].analysesToDo.includes(type)) {
-    res.status(400).json({ status: "already-analyzing" });
-    return;
-  }
-
-  const deps = AVAILABLE_ANALYSES[type];
-  tickets[ticketId].analysesToDo.push(type, ...deps);
-
-  const updateTicketProgress = () => {
+function updateTicketProgress() {
+  for (ticketId in tickets) {
     if (!tickets[ticketId].hasVideo) {
-      setTimeout(updateTicketProgress, 100);
-      return;
+      continue;
     }
 
     for (const analysis of tickets[ticketId].analysesToDo) {
@@ -215,18 +232,61 @@ app.post("/api/ticket/analyze", (req, res) => {
       }
 
       if (tickets[ticketId].status[analysis] < 1.0) {
-        tickets[ticketId].status[analysis] += 0.01;
-        setTimeout(updateTicketProgress, 100);
+        tickets[ticketId].status[analysis] += 0.2;
       } else {
         tickets[ticketId].status[analysis] = ANALYSES_OUTPUT[analysis];
+        tickets[ticketId].analysesToDo = tickets[ticketId].analysesToDo.filter(
+          (a) => a !== analysis
+        );
       }
     }
-  };
+  }
+}
+setInterval(updateTicketProgress, 1000);
+
+app.post("/api/ticket/analyze", (req, res) => {
+  const ticketId = req.query["ticket-id"];
+
+  if (!tickets[ticketId]) {
+    res.status(400).json({ status: "bad-ticket" });
+    return;
+  }
+
+  let deps;
+
+  const type = req.query["type"];
+  if (type) {
+    if (tickets[ticketId].analysesToDo.includes(type)) {
+      res.status(400).json({ status: "already-analyzing" });
+      return;
+    }
+    if (!AVAILABLE_ANALYSES.hasOwnProperty(type)) {
+      res.status(400).json({ status: "bad-analysis-type" });
+      return;
+    }
+    // Start just the selected analysis and its dependencies
+    if (!tickets[ticketId].analysesToDo.includes(type)) {
+      tickets[ticketId].analysesToDo.push(type);
+    }
+    deps = AVAILABLE_ANALYSES[type];
+    for (const dep of deps) {
+      if (!tickets[ticketId].analysesToDo.includes(dep)) {
+        tickets[ticketId].analysesToDo.push(dep);
+      }
+    }
+  } else {
+    // Start all analyses
+    for (const analysis in AVAILABLE_ANALYSES) {
+      if (!tickets[ticketId].analysesToDo.includes(analysis)) {
+        tickets[ticketId].analysesToDo.push(analysis);
+      }
+    }
+  }
   updateTicketProgress();
 
   res.json({
     status: "success",
-    "request-deps": deps,
+    "request-deps": type ? deps : undefined,
   });
 });
 
@@ -234,7 +294,7 @@ app.get("/api/ticket/status", (req, res) => {
   const ticketId = req.query["ticket-id"];
 
   if (!tickets[ticketId]) {
-    res.status(400).json({ status: "bad-ticket" });
+    res.status(404).json({ status: "bad-ticket" });
     return;
   }
 
@@ -278,7 +338,12 @@ app.post("/api/ticket/cancel", (req, res) => {
   const type = req.query["type"];
 
   if (!type) {
+    for (const analysis of tickets[ticketId].analysesToDo) {
+      delete tickets[ticketId].status[analysis];
+    }
     tickets[ticketId].analysesToDo = [];
+    res.json({ status: "success" });
+    return;
   }
 
   if (!tickets[ticketId].analysesToDo.includes(type)) {
@@ -302,6 +367,7 @@ app.use(
   })
 );
 
+const port = 8080;
 app.listen(port, () => {
   console.log(`API mockup listening at http://localhost:${port}`);
 });
