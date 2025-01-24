@@ -68,10 +68,12 @@ function Transcription({
   status,
   videoRef,
   displayedTimelineAnalysis,
+  allStatus,
 }: {
   status: TranscriptionStatus;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   displayedTimelineAnalysis: { [key: string]: boolean };
+  allStatus: Status;
 }) {
   const handleWordClick = (index: number) => {
     if (videoRef.current) {
@@ -93,12 +95,13 @@ function Transcription({
             let hasIssue = false;
             for (const issue of Object.keys(displayedTimelineAnalysis)) {
               if (displayedTimelineAnalysis[issue]) {
-                const issueStatus = (status as any)[issue];
+                const issueStatus = (allStatus as any)[issue];
                 if (
                   issueStatus &&
                   issueStatus.gaps.some(
                     (gap: { start: number; end: number }) =>
-                      gap.start <= word.start && gap.end >= word.end
+                      (word.start <= gap.start && gap.start <= word.end) ||
+                      (word.start <= gap.end && gap.end <= word.end)
                   )
                 ) {
                   hasIssue = true;
@@ -112,7 +115,7 @@ function Transcription({
                 key={index}
                 className={`select-none rounded-md px-1 cursor-pointer transition-colors ${
                   isCurrent ? "bg-foreground text-background" : ""
-                } ${hasIssue ? "bg-red-500 text-white" : ""}`}
+                } ${hasIssue ? "underline text-red-500" : ""}`}
                 onClick={() => handleWordClick(index)}
               >
                 {word.word}
@@ -150,7 +153,11 @@ function AnalysisPanel({
     <>
       {typeof analysisStatus === "object" && analysisStatus ? (
         // Display results
-        <Component {...componentProps} status={analysisStatus} />
+        <Component
+          {...componentProps}
+          status={analysisStatus}
+          allStatus={status.current}
+        />
       ) : typeof analysisStatus === "number" ? (
         // Display progress
         <div className="flex flex-col items-center justify-center w-full h-full gap-4">
@@ -626,7 +633,7 @@ export default function TicketStatus() {
                     setDisplayedTimelineAnalysis={setDisplayedTimelineAnalysis}
                   />
                   <AnalysisColumnItem
-                    name="numbers"
+                    name="Numberics"
                     icon={faListOl}
                     id="numbers"
                     status={status}
