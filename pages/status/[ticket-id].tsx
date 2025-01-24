@@ -101,7 +101,9 @@ function Transcription({
                   issueStatus.gaps.some(
                     (gap: { start: number; end: number }) =>
                       (word.start <= gap.start && gap.start <= word.end) ||
-                      (word.start <= gap.end && gap.end <= word.end)
+                      (gap.start <= word.start && word.start <= gap.end) ||
+                      (word.start <= gap.end && gap.end <= word.end) ||
+                      (gap.start <= word.end && word.end <= gap.end)
                   )
                 ) {
                   hasIssue = true;
