@@ -59,6 +59,15 @@ const VideoControls: React.FC<VideoControlsProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onPlayPause]);
 
+  // Filter out gaps that are too close to each other
+  // Start by sorting the gaps by start time
+  gaps.sort((a, b) => a.start - b.start);
+  const filteredGaps = gaps.filter((gap, i) => {
+    if (i === 0) return true;
+    const prevGap = gaps[i - 1];
+    return gap.start - prevGap.end > 0.5;
+  });
+
   return (
     <div
       className={`fixed bottom-0 left-0 right-0 bg-background border-t p-4 transition-transform z-10 ${
@@ -92,7 +101,7 @@ const VideoControls: React.FC<VideoControlsProps> = ({
         />
         <div>
           {/* <div className="absolute w-2 h-2 bg-red-400 top-6 left-10 rounded translate-x-[1450px]"></div> */}
-          {gaps
+          {filteredGaps
             .map((gap, i) => {
               const barWidthPx =
                 document.getElementById("progress-bar-id")?.offsetWidth || 0;

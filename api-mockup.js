@@ -18,6 +18,7 @@ const AVAILABLE_ANALYSES = {
   silence: [],
   repetition: ["transcription"],
   volume: [],
+  metrics: ["transcription"],
 };
 
 function makeFakeTranscriptionWords() {
@@ -104,6 +105,10 @@ const ANALYSES_OUTPUT = {
       { start: 8.5, end: 8.9 },
       { start: 18.0, end: 18.4 },
     ],
+  },
+  metrics: {
+    wpm: 117,
+    gfi: 19.6,
   },
 };
 

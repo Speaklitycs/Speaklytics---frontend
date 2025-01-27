@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+
+  backend:
+    build:
+      context: Speaklytics
+      dockerfile: Dockerfile
+    ports:
+      - "28080:8080"
+    env_file:
+      - .env
+    environment:
+      FRONTEND_HOST: web

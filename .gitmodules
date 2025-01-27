@@ -1,0 +1,3 @@
+[submodule "Speaklytics"]
+	path = Speaklytics
+	url = ../../AdamStajek/Speaklytics.git
