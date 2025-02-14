@@ -38,7 +38,7 @@ ng serve --port=4300
 ## UI Screenshots
 
 ### Dashboard
-![Dashboard Screenshot](dashboard.png)
+![Dashboard Screenshot](Dashboard.png)
 
 ### Speech Analysis
 ![Speech Analysis Screenshot](analysis.png)
