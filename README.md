@@ -28,12 +28,7 @@ npm run dev
 ```
 
 The application will be accessible at `http://localhost:8080/new`.
-
-If you need to run the app on a different port:
-
-```bash
-ng serve --port=4300
-```
+If you want to access full functionality, remember to run the backend as well!
 
 ## UI Screenshots
 
