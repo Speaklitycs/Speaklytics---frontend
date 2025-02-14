@@ -43,8 +43,6 @@ ng serve --port=4300
 ### Speech Analysis
 ![Speech Analysis Screenshot](analysis.png)
 
-Replace `path/to/screenshot.png` with the actual image paths after taking screenshots.
-
 ## Contributing
 
 We welcome contributions! Please fork the repository and submit a pull request with your changes. Ensure your code adheres to our coding standards and includes appropriate tests.
