@@ -38,10 +38,10 @@ ng serve --port=4300
 ## UI Screenshots
 
 ### Dashboard
-![Dashboard Screenshot](UI/dashboard.png)
+![Dashboard Screenshot](dashboard.png)
 
 ### Speech Analysis
-![Speech Analysis Screenshot](UI/analysis.png)
+![Speech Analysis Screenshot](analysis.png)
 
 Replace `path/to/screenshot.png` with the actual image paths after taking screenshots.
 
